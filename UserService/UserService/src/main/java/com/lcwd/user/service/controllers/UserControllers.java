@@ -3,6 +3,7 @@ package com.lcwd.user.service.controllers;
 import com.lcwd.user.service.entities.User;
 import com.lcwd.user.service.services.UserServices;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,10 +35,17 @@ public class UserControllers {
 
 
     //get single user
+    int retrycount=1;
 
     @GetMapping("/{userId}")
-    @CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    //@CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    @Retry(name = "ratingHotelService", fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User> getSingleUser(@PathVariable  String userId){
+         logger.info("get single user handler: userController");
+
+         logger.info("Retry count: {}", retrycount);
+        retrycount++;
+
         User user = userServices.getUserById(userId);
 
         return ResponseEntity.ok(user);
@@ -45,9 +53,11 @@ public class UserControllers {
 
     //creating fall back method for circuitbreaker
 
+
     public ResponseEntity<User> ratingHotelFallback(String userId, Exception ex){
 
-        logger.info("Fallback is executed because ervice is down", ex.getMessage());
+        //logger.info("Fallback is executed because ervice is down", ex.getMessage());
+
         User user = User.builder()
                 .email("santprasad.8989@gmail.com")
                 .name("sanju tiwari")
