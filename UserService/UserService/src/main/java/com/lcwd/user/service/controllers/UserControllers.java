@@ -2,6 +2,9 @@ package com.lcwd.user.service.controllers;
 
 import com.lcwd.user.service.entities.User;
 import com.lcwd.user.service.services.UserServices;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +16,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/users")
 public class UserControllers {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserControllers.class);
 
 
    @Autowired
@@ -31,11 +36,25 @@ public class UserControllers {
     //get single user
 
     @GetMapping("/{userId}")
+    @CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User> getSingleUser(@PathVariable  String userId){
-
         User user = userServices.getUserById(userId);
 
         return ResponseEntity.ok(user);
+    }
+
+    //creating fall back method for circuitbreaker
+
+    public ResponseEntity<User> ratingHotelFallback(String userId, Exception ex){
+
+        logger.info("Fallback is executed because ervice is down", ex.getMessage());
+        User user = User.builder()
+                .email("santprasad.8989@gmail.com")
+                .name("sanju tiwari")
+                .about("This user is created dummy because some service is down")
+                .userId("1236547")
+                .build();
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
 
